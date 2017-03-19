@@ -1,8 +1,8 @@
 require "game"
 
-WindowSize = {980, 990}
+WindowSize = {820, 835}
 MapScreenPos = {10, 10}
-MapSize = {120, 120}
+MapSize = {100, 100}
 
 function love.load()
   love.window.setMode(unpack(WindowSize))
@@ -13,7 +13,7 @@ function love.load()
       mapSize = MapSize
     })
 
-  game:generateMap()
+  game:generateMap(1)
 end
 
 function love.update(dt)
@@ -24,7 +24,7 @@ function love.draw()
   game:renderMap(MapScreenPos)
 
   love.graphics.setFont(GuiFont)
-  love.graphics.print(string.format("heightSeed: %s   rainSeed: %s", game.map.heightSeed, game.map.rainSeed), 25, 972)
+  love.graphics.print(string.format("heightSeed: %s   rainSeed: %s", game.map.heightSeed, game.map.rainSeed), 15, 813)
 end
 
 function love.mousepressed(x, y, button)

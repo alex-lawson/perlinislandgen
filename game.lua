@@ -29,9 +29,9 @@ function Game:new(config)
   return newGame
 end
 
-function Game:generateMap()
-  math.randomseed(seedTime())
-  self.map:generate(math.random(1, 10000), math.random(1, 10000))
+function Game:generateMap(seed)
+  math.randomseed(seed or seedTime())
+  self.map:generate("flat", math.random(1, 10000), math.random(1, 10000))
   self:movePlayerTo(self:findPlayerStart())
 end
 
