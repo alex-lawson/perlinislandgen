@@ -16,8 +16,20 @@ Map = {}
 
 function Map:new(config)
   local newMap = setmetatable(copy(config), {__index=Map})
+  newMap:setSeed(0)
+  newMap:setTime(0)
   newMap:clear()
   return newMap
+end
+
+function Map:setTime(time)
+  self.time = time
+  self:updateOffsets(time)
+end
+
+function Map:setSeed(seed)
+  self.seed = seed
+  self:createPerlins(seed, seed + 1, seed + 2)
 end
 
 function Map:setTile(x, y, value)
@@ -35,12 +47,10 @@ function Map:collides(x, y)
   return not (t > 1 and t < 5)
 end
 
-function Map:generate(terrainType, heightSeed, rainSeed)
+function Map:generate(terrainType)
   self:clear()
 
-  local heightnoise, heightnoise2, rainnoise = self:createPerlins(heightSeed, heightSeed + 1, rainSeed)
-
-  local heightMap, rainMap = self["generate_"..terrainType](self, heightnoise, heightnoise2, rainnoise)
+  local heightMap, rainMap = self["generate_"..terrainType](self)
 
   self:buildTerrainFromHeight(heightMap)
   self:applyRainfall(rainMap, heightMap)
@@ -48,21 +58,20 @@ function Map:generate(terrainType, heightSeed, rainSeed)
   self:smoothTiles()
 end
 
-function Map:generate_flat(heightnoise, heightnoise2, rainnoise)
-  local cx, cy = self.size[1] / 2, self.size[2] / 2
+function Map:generate_flat()
   local heightMap, rainMap = {}, {}
   for x = 1, self.size[1] do
     heightMap[x], rainMap[x] = {}, {}
     for y = 1, self.size[2] do
-      heightMap[x][y] = heightnoise.get(x, y) * 1.0 + heightnoise2.get(x, y) * 0.3 + 0.5
+      heightMap[x][y] = self.heightnoise.get(x + self.offsets.heightnoise[1], y + self.offsets.heightnoise[2]) * 1.0 + self.heightnoise2.get(x + self.offsets.heightnoise2[1], y + self.offsets.heightnoise2[2]) * 0.3 + 0.5
 
-      rainMap[x][y] = rainnoise.get(x, y)
+      rainMap[x][y] = self.rainnoise.get(x + self.offsets.rainnoise[1], y + self.offsets.rainnoise[2]) + self.offsets.rain
     end
   end
   return heightMap, rainMap
 end
 
-function Map:generate_island(heightnoise, heightnoise2, rainnoise)
+function Map:generate_island()
   local cx, cy = self.size[1] / 2, self.size[2] / 2
   local heightMap, rainMap = {}, {}
   for x = 1, self.size[1] do
@@ -71,15 +80,15 @@ function Map:generate_island(heightnoise, heightnoise2, rainnoise)
       local centerdist = math.sqrt(math.abs(x - cx) * math.abs(x - cx) + math.abs(y - cy) * math.abs(y - cy))
       local centerbias = math.cos(centerdist * 5 / self.size[1]) - 0.4
 
-      heightMap[x][y] = heightnoise.get(x, y) + heightnoise2.get(x, y) * 0.3 + centerbias
+      heightMap[x][y] = self.heightnoise.get(x + self.offsets.heightnoise[1], y + self.offsets.heightnoise[2]) + self.heightnoise2.get(x + self.offsets.heightnoise2[1], y + self.offsets.heightnoise2[2]) * 0.3 + centerbias
 
-      rainMap[x][y] = rainnoise.get(x, y)
+      rainMap[x][y] = self.rainnoise.get(x + self.offsets.rainnoise[1], y + self.offsets.rainnoise[2]) + self.offsets.rain
     end
   end
   return heightMap, rainMap
 end
 
-function Map:generate_valley(heightnoise, heightnoise2, rainnoise)
+function Map:generate_valley()
   local cx, cy = self.size[1] / 2, self.size[2] / 2
   local heightMap, rainMap = {}, {}
   for x = 1, self.size[1] do
@@ -88,9 +97,9 @@ function Map:generate_valley(heightnoise, heightnoise2, rainnoise)
       local centerdist = math.sqrt(math.abs(x - cx) * math.abs(x - cx) + math.abs(y - cy) * math.abs(y - cy))
       local centerbias = -math.cos(centerdist * 5 / self.size[1]) + 0.8
 
-      heightMap[x][y] = heightnoise.get(x, y) * 0.8 + heightnoise2.get(x, y) * 0.3 + centerbias
+      heightMap[x][y] = self.heightnoise.get(x + self.offsets.heightnoise[1], y + self.offsets.heightnoise[2]) * 0.8 + self.heightnoise2.get(x + self.offsets.heightnoise2[1], y + self.offsets.heightnoise2[2]) * 0.3 + centerbias
 
-      rainMap[x][y] = rainnoise.get(x, y)
+      rainMap[x][y] = self.rainnoise.get(x + self.offsets.rainnoise[1], y + self.offsets.rainnoise[2]) + self.offsets.rain
     end
   end
   return heightMap, rainMap
@@ -101,25 +110,31 @@ function Map:createPerlins(heightSeed, height2Seed, rainSeed)
   self.height2Seed = height2Seed
   self.rainSeed = rainSeed
 
-  local heightnoise = perlin.create(heightSeed, {
+  self.heightnoise = perlin.create(heightSeed, {
       freq = 0.02,
       octaves = 2,
       alpha = 4,
       beta = 2
     })
 
-  local heightnoise2 = perlin.create(height2Seed, {
+  self.heightnoise2 = perlin.create(height2Seed, {
       freq = 0.05,
       octaves = 2,
       alpha = 4,
       beta = 2
     })
 
-  local rainnoise = perlin.create(rainSeed, {
+  self.rainnoise = perlin.create(rainSeed, {
       freq = 0.013
     })
+end
 
-  return heightnoise, heightnoise2, rainnoise
+function Map:updateOffsets(time)
+  self.offsets = self.offsets or {}
+  self.offsets.heightnoise = {time * 0.5, 0}
+  self.offsets.heightnoise2 = {0, time * 0.3}
+  self.offsets.rainnoise = {time * 0.6, 0}
+  self.offsets.rain = math.sin(time * math.pi * 2 / self.yearLength) * 0.2
 end
 
 -- height based terrain
@@ -152,7 +167,7 @@ function Map:applyRainfall(rainMap, heightMap)
       if self:getTile(x, y) == 3 then
         if rainMap[x][y] > 0.2 and heightMap[x][y] > 0.2 then
           self:setTile(x, y, 4) -- forest
-        elseif rainMap[x][y] < -0.5 then
+        elseif rainMap[x][y] < -0.2 then
           self:setTile(x, y, 2) -- sand (desert)
         end
       end

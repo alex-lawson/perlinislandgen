@@ -10,21 +10,22 @@ function love.load()
   GuiFont = love.graphics.newFont("cour.ttf", 16)
 
   game = Game:new({
-      mapSize = MapSize
+      mapSize = MapSize,
+      ageRate = 0.05
     })
 
   game:generateMap(1)
 end
 
 function love.update(dt)
-
+  game:update(dt)
 end
 
 function love.draw()
   game:renderMap(MapScreenPos)
 
   love.graphics.setFont(GuiFont)
-  love.graphics.print(string.format("heightSeed: %s   rainSeed: %s", game.map.heightSeed, game.map.rainSeed), 15, 813)
+  love.graphics.print(string.format("seed: %s     time: %.2f  (year %s)     rain: %.2f", game.map.seed, game.map.time, math.floor(game.map.time / game.map.yearLength), game.map.offsets.rain), 15, 813)
 end
 
 function love.mousepressed(x, y, button)
@@ -47,6 +48,7 @@ function love.keypressed(key)
   end
 
   if key == "space" then
+    game:setSeed(math.random())
     game:generateMap()
   end
 end
