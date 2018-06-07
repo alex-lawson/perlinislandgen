@@ -37,15 +37,15 @@ function love.mousereleased(x, y, button)
 end
 
 function love.keypressed(key)
-  if key == "up" or key == "w" then
-    game:movePlayer(0, 1)
-  elseif key == "down" or key == "s" then
-    game:movePlayer(0, -1)
-  elseif key == "left" or key == "a" then
-    game:movePlayer(-1, 0)
-  elseif key == "right" or key == "d" then
-    game:movePlayer(1, 0)
-  end
+  -- if key == "up" or key == "w" then
+  --   game:movePlayer(0, 1)
+  -- elseif key == "down" or key == "s" then
+  --   game:movePlayer(0, -1)
+  -- elseif key == "left" or key == "a" then
+  --   game:movePlayer(-1, 0)
+  -- elseif key == "right" or key == "d" then
+  --   game:movePlayer(1, 0)
+  -- end
 
   if key == "space" then
     game:setSeed(math.random())
